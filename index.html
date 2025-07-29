@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jogo da Memória - Células</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #e6f2ff;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      justify-content: center;
+      margin: 2rem auto;
+      max-width: 800px;
+    }
+
+    .card {
+      width: 100%;
+      aspect-ratio: 2/3;
+      border-radius: 12px;
+      perspective: 1000px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.5s;
+    }
+
+    .flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 10px;
+    }
+
+    .card-front {
+      background-image: url('capa.png'); /* frente da carta */
+      background-size: cover;
+      background-position: center;
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+      background-color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card-back img {
+      width: 90%;
+      height: 90%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    #timer {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+
+    #congrats {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: green;
+      margin-top: 2rem;
+      display: none;
+    }
+
+    #introText {
+      margin-top: 20px;
+      text-align: justify;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    @media (max-width: 576px) {
+      h2 {
+        font-size: 1.2rem;
+      }
+
+      #timer {
+        font-size: 1rem;
+      }
+
+      .grid {
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🪱 Jogo da Memória: caçadores de parasitas 🪰</h2>
+  <button id="startBtn" class="btn btn-primary mb-3">Iniciar Jogo</button>
+  <div id="timer">⏱️ Tempo: 0s</div>
+
+  <div id="introText" class="bg-light shadow-sm p-4 rounded border">
+    <p><strong>Desde os primórdios da humanidade</strong>, os parasitas têm sido companheiros invisíveis e implacáveis...</p>
+    <p>Ao longo dos séculos, parasitas como a <strong>malária</strong>...</p>
+    <p><strong>Como os Parasitas Transmitem Doenças?</strong> Muitos parasitas utilizam vetores...</p>
+    <p><strong>O Ataque Silencioso ao Nosso Corpo:</strong></p>
+    <ul>
+      <li><strong>Dano Direto:</strong> Ex: esquistossomose</li>
+      <li><strong>Competição por Nutrientes</strong></li>
+      <li><strong>Produção de Toxinas</strong></li>
+      <li><strong>Manipulação do Sistema Imunológico</strong></li>
+      <li><strong>Obstrução de Órgãos</strong></li>
+    </ul>
+    <p><strong>A batalha contra os parasitas é constante.</strong> Você está pronto para enfrentá-los no jogo?</p>
+  </div>
+
+  <div class="grid" id="gameBoard"></div>
+  <div id="congrats"></div>
+
+  <script>
+    const images = [
+      
+'imagem1.jpg', 
+'imagem2.jpg', 
+'imagem3.jpg', 
+'imagem4.jpg',
+'imagem5.jpg',
+'imagem6.jpg',
+'imagem7.jpg', 
+'imagem8.jpg',
+'imagem9.jpg',
+'imagem10.jpg',
+'imagem11.jpg',
+'imagem12.jpg', 
+'imagem13.jpg',
+'imagem14.jpg',
+
+
+    ];
+
+    let firstCard = null;
+    let secondCard = null;
+    let lockBoard = false;
+    let matches = 0;
+    let startTime;
+    let timerInterval;
+    let canClick = false;
+
+    const board = document.getElementById('gameBoard');
+    const timer = document.getElementById('timer');
+    const startBtn = document.getElementById('startBtn');
+    const congrats = document.getElementById('congrats');
+    const introText = document.getElementById('introText');
+
+    function startGame() {
+      introText.style.display = 'none';
+      startBtn.style.display = 'none';
+
+      board.innerHTML = '';
+      congrats.style.display = 'none';
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+      matches = 0;
+      canClick = false;
+
+      const allImages = [...images, ...images].sort(() => 0.5 - Math.random());
+      const cards = allImages.map((src, index) => createCard(src, index));
+      cards.forEach(card => board.appendChild(card));
+
+      const allCards = document.querySelectorAll('.card');
+      allCards.forEach(card => card.classList.add('flipped'));
+
+      setTimeout(() => {
+        allCards.forEach(card => card.classList.remove('flipped'));
+        startTime = Date.now();
+        canClick = true;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(updateTimer, 1000);
+      }, 5000);
+    }
+
+    function createCard(src, id) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.image = src;
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="card-front"></div>
+          <div class="card-back"><img src="${src}" alt="imagem"></div>
+        </div>
+      `;
+      card.addEventListener('click', () => {
+        if (!canClick || lockBoard || card.classList.contains('flipped') || card === firstCard) return;
+        card.classList.add('flipped');
+        if (!firstCard) {
+          firstCard = card;
+        } else {
+          secondCard = card;
+          checkMatch();
+        }
+      });
+      return card;
+    }
+
+    function checkMatch() {
+      const isMatch = firstCard.dataset.image === secondCard.dataset.image;
+      if (isMatch) {
+        matches++;
+        resetCards();
+        if (matches === images.length) {
+          clearInterval(timerInterval);
+          const totalTime = Math.floor((Date.now() - startTime) / 1000);
+          congrats.innerHTML = `🎉 Parabéns! Você encontrou todos os pares em <strong>${totalTime} segundos</strong>.`;
+          congrats.style.display = 'block';
+        }
+      } else {
+        lockBoard = true;
+        setTimeout(() => {
+          firstCard.classList.remove('flipped');
+          secondCard.classList.remove('flipped');
+          resetCards();
+        }, 1000);
+      }
+    }
+
+    function resetCards() {
+      [firstCard, secondCard] = [null, null];
+      lockBoard = false;
+    }
+
+    function updateTimer() {
+      const seconds = Math.floor((Date.now() - startTime) / 1000);
+      timer.textContent = `⏱️ Tempo: ${seconds}s`;
+    }
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+
+</body>
+</html>
